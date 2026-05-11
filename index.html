@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>記帳系統｜二手車 × 飲料店</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap');
+
+:root {
+  --car:#1A56C4; --car-l:#E8F0FB; --car-m:#2E5FA3;
+  --drink:#1A7B3A; --drink-l:#E6F4EA; --drink-m:#2E7D32;
+  --personal:#7C3AED; --personal-l:#F3EEFF; --personal-m:#6D28D9;
+  --gold:#F59E0B; --red:#DC2626; --purple:#7C3AED;
+  --gray:#6B7280; --bg:#F0F2F5; --white:#fff; --dark:#111827;
+  --r:14px; --sh:0 2px 16px rgba(0,0,0,.10);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--dark);min-height:100vh;padding-bottom:80px}
+
+/* ── SETUP OVERLAY ── */
+#setup-overlay{position:fixed;inset:0;background:rgba(17,24,39,.95);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;}
+.setup-box{background:#fff;border-radius:20px;padding:28px 24px;max-width:440px;width:100%}
+.setup-box h2{font-size:18px;font-weight:900;margin-bottom:6px}
+.setup-box p{font-size:13px;color:var(--gray);margin-bottom:18px;line-height:1.6}
+.setup-steps{margin-bottom:18px}
+.setup-step{display:flex;gap:10px;margin-bottom:12px;font-size:13px;line-height:1.5;align-items:flex-start}
+.step-num{flex-shrink:0;width:22px;height:22px;border-radius:50%;background:var(--car);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:1px;}
+.setup-input-wrap{display:flex;gap:8px}
+.setup-input-wrap input{flex:1;padding:11px 14px;border:2px solid #E5E7EB;border-radius:10px;font-size:14px;font-family:inherit;}
+.setup-input-wrap input:focus{outline:none;border-color:var(--car)}
+.btn-setup{background:var(--car);color:#fff;border:none;border-radius:10px;padding:12px 20px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;flex-shrink:0;}
+
+/* ── TOP BAR ── */
+.top-bar{background:linear-gradient(135deg,#1A3558 0%,#1A56C4 40%,#7C3AED 70%,#1A7B3A 100%);padding:14px 16px 0;position:sticky;top:0;z-index:100;}
+.top-bar-row{display:flex;align-items:center;justify-content:space-between;padding-bottom:10px}
+.top-bar h1{color:#fff;font-size:17px;font-weight:900;letter-spacing:.5px}
+.top-bar h1 small{font-size:11px;font-weight:400;opacity:.7;margin-left:6px}
+.staff-badge{background:rgba(255,255,255,.2);color:#fff;border:1.5px solid rgba(255,255,255,.4);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700;cursor:pointer;}
+.tabs{display:flex;gap:2px}
+.tab-btn{flex:1;padding:8px 2px;border:none;border-radius:10px 10px 0 0;font-family:inherit;font-size:11px;font-weight:700;cursor:pointer;background:rgba(255,255,255,.15);color:rgba(255,255,255,.75);transition:all .2s;}
+.tab-btn.active{background:#fff;color:var(--dark)}
+.tab-btn.tc.active{color:var(--car)}
+.tab-btn.td.active{color:var(--drink)}
+.tab-btn.tp.active{color:var(--personal)}
+.tab-btn.ts.active{color:#92400E}
+.tab-btn.tq.active{color:#374151}
+
+/* ── PANELS ── */
+.panel{display:none;padding:14px}
+.panel.active{display:block}
+
+/* ── CARD ── */
+.card{background:#fff;border-radius:var(--r);box-shadow:var(--sh);padding:16px;margin-bottom:14px}
+.card-title{font-size:13px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700}
+.badge-car{background:var(--car-l);color:var(--car)}
+.badge-drink{background:var(--drink-l);color:var(--drink)}
+.badge-personal{background:var(--personal-l);color:var(--personal)}
+
+/* ── FORM ── */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.fg{display:flex;flex-direction:column;gap:4px}
+.fg.full{grid-column:1/-1}
+label{font-size:11px;color:var(--gray);font-weight:500}
+input,select{padding:10px 12px;border:1.5px solid #E5E7EB;border-radius:8px;font-family:inherit;font-size:14px;color:var(--dark);background:#FAFAFA;width:100%;transition:border .2s;}
+input:focus,select:focus{outline:none;border-color:var(--car);background:#fff}
+.drink-panel input:focus,.drink-panel select:focus{border-color:var(--drink)}
+.personal-panel input:focus,.personal-panel select:focus{border-color:var(--personal)}
+input[type=number]{text-align:right}
+
+/* ── BUTTONS ── */
+.btn{width:100%;padding:13px;border:none;border-radius:10px;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;transition:all .15s;}
+.btn-car{background:var(--car);color:#fff}
+.btn-car:active{background:var(--car-m);transform:scale(.98)}
+.btn-drink{background:var(--drink);color:#fff}
+.btn-drink:active{background:var(--drink-m);transform:scale(.98)}
+.btn-personal{background:var(--personal);color:#fff}
+.btn-personal:active{background:var(--personal-m);transform:scale(.98)}
+.btn-outline{background:transparent;border:1.5px solid #D1D5DB;color:var(--gray);width:100%;padding:9px;border-radius:8px;font-family:inherit;font-size:13px;cursor:pointer;margin-top:6px}
+.btn-danger{background:var(--red);color:#fff;width:100%;padding:9px;border-radius:8px;border:none;font-family:inherit;font-size:13px;cursor:pointer;margin-top:6px}
+
+/* ── CATEGORY CHIPS ── */
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:4px}
+.chip{padding:6px 12px;border-radius:20px;border:1.5px solid #E5E7EB;background:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--gray);transition:all .15s;}
+.chip.active{border-color:var(--personal);background:var(--personal-l);color:var(--personal)}
+
+/* ── RECORD ITEMS ── */
+.record-item{border-radius:10px;padding:12px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:flex-start;border-left:4px solid transparent;background:#F9FAFB;}
+.record-item.car{border-color:var(--car)}
+.record-item.drink{border-color:var(--drink)}
+.record-item.personal{border-color:var(--personal)}
+.record-left{flex:1}
+.record-title{font-size:14px;font-weight:700}
+.record-sub{font-size:11px;color:var(--gray);margin-top:2px}
+.record-right{text-align:right;flex-shrink:0;margin-left:10px}
+.pp{color:var(--drink);font-weight:700}
+.pn{color:var(--red);font-weight:700}
+.pz{color:var(--gray)}
+.del-btn{background:none;border:none;color:#D1D5DB;font-size:16px;cursor:pointer;padding:0 0 0 8px}
+.del-btn:active{color:var(--red)}
+
+/* ── SUMMARY STATS ── */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.stat-card{border-radius:12px;padding:14px 12px;text-align:center}
+.sc-car{background:var(--car-l)}
+.sc-drink{background:var(--drink-l)}
+.sc-personal{background:var(--personal-l)}
+.sc-gold{background:#FEF3C7}
+.sc-red{background:#FEE2E2}
+.sc-total{background:linear-gradient(135deg,#1A3558,#7C3AED,#1A7B3A);color:#fff;grid-column:1/-1}
+.stat-label{font-size:11px;color:var(--gray);margin-bottom:4px;font-weight:500}
+.sc-total .stat-label{color:rgba(255,255,255,.7)}
+.stat-value{font-size:20px;font-weight:900}
+.sc-car .stat-value{color:var(--car)}
+.sc-drink .stat-value{color:var(--drink)}
+.sc-personal .stat-value{color:var(--personal)}
+.sc-gold .stat-value{color:#92400E}
+.sc-red .stat-value{color:var(--red)}
+.sc-total .stat-value{color:#fff;font-size:24px}
+.stat-sub{font-size:11px;margin-top:3px;opacity:.7}
+
+.month-row{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.month-row select{flex:1;text-align:center;font-weight:700}
+.arr{background:#fff;border:1.5px solid #E5E7EB;border-radius:8px;width:36px;height:36px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+
+.divider{font-size:12px;font-weight:700;color:var(--gray);padding:8px 0 4px;display:flex;align-items:center;gap:8px}
+.divider::after{content:'';flex:1;height:1px;background:#E5E7EB}
+.empty{text-align:center;padding:28px 0;color:var(--gray);font-size:14px}
+.empty-icon{font-size:36px;margin-bottom:8px}
+
+/* ── CALC ── */
+.calc-display{background:#111827;color:#fff;border-radius:10px;padding:16px;font-size:28px;font-weight:900;text-align:right;min-height:64px;word-break:break-all;font-family:'Courier New',monospace;margin-bottom:10px;}
+.calc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.cb{padding:16px 4px;border:none;border-radius:8px;font-size:17px;font-weight:700;cursor:pointer;font-family:inherit}
+.cb:active{opacity:.7}
+.cn{background:#374151;color:#fff}
+.co{background:var(--gold);color:#fff}
+.ce{background:var(--car);color:#fff}
+.cc{background:var(--red);color:#fff}
+.cz{grid-column:span 2}
+.quick-result{margin-top:10px;padding:12px;background:var(--bg);border-radius:8px;font-size:14px;font-weight:700;text-align:center;color:var(--gray)}
+
+/* ── LOADING / TOAST ── */
+.loading{display:flex;align-items:center;gap:8px;padding:20px;justify-content:center;color:var(--gray);font-size:14px}
+.spinner{width:18px;height:18px;border:2px solid #E5E7EB;border-top-color:var(--car);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:#1F2937;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:500;z-index:9998;transition:transform .3s;white-space:nowrap;}
+.toast.show{transform:translateX(-50%) translateY(0)}
+
+/* ── PERSONAL CATEGORY COLORS ── */
+.cat-food{color:#EA580C}.cat-transport{color:#0284C7}.cat-shopping{color:#DB2777}
+.cat-entertainment{color:#7C3AED}.cat-medical{color:#DC2626}.cat-utility{color:#059669}.cat-other{color:#6B7280}
+</style>
+</head>
+<body>
+
+<!-- ══════════ SETUP OVERLAY ══════════ -->
+<div id="setup-overlay">
+  <div class="setup-box">
+    <h2>🔧 首次設定</h2>
+    <p>請先完成 Google Apps Script 部署，再填入 API 網址。只需設定一次即可。</p>
+    <div class="setup-steps">
+      <div class="setup-step"><div class="step-num">1</div><div>開啟 Google Sheets → 擴充功能 → Apps Script</div></div>
+      <div class="setup-step"><div class="step-num">2</div><div>貼上 <strong>Code_AppScript.txt</strong> 的內容並儲存</div></div>
+      <div class="setup-step"><div class="step-num">3</div><div>部署 → 新增部署 → 網路應用程式 → 執行身份「我」→ 存取「所有人」</div></div>
+      <div class="setup-step"><div class="step-num">4</div><div>複製部署網址貼到下方</div></div>
+    </div>
+    <div class="setup-input-wrap">
+      <input type="url" id="api-url-input" placeholder="https://script.google.com/macros/s/.../exec">
+      <button class="btn-setup" onclick="saveApiUrl()">確認</button>
+    </div>
+    <p style="margin-top:10px;font-size:11px;color:var(--gray)">網址儲存在瀏覽器，下次開啟自動連線。</p>
+  </div>
+</div>
+
+<!-- ══════════ TOP BAR ══════════ -->
+<div class="top-bar">
+  <div class="top-bar-row">
+    <h1>📊 記帳系統 <small>公司 × 私人</small></h1>
+    <div class="staff-badge" onclick="changeStaff()" id="staff-display">👤 設定姓名</div>
+  </div>
+  <div class="tabs">
+    <button class="tab-btn tc active" onclick="switchTab('car')">🚗 二手車</button>
+    <button class="tab-btn td" onclick="switchTab('drink')">🧋 飲料店</button>
+    <button class="tab-btn tp" onclick="switchTab('personal')">💳 私人帳</button>
+    <button class="tab-btn ts" onclick="switchTab('summary')">📈 總覽</button>
+    <button class="tab-btn tq" onclick="switchTab('calc')">🔢 計算</button>
+  </div>
+</div>
+
+<!-- ══════════ CAR PANEL ══════════ -->
+<div id="panel-car" class="panel active">
+  <div class="card">
+    <div class="card-title"><span class="badge badge-car">公司</span>二手車交易紀錄</div>
+    <div class="form-grid">
+      <div class="fg"><label>日期</label><input type="date" id="c-date"></div>
+      <div class="fg"><label>車牌 / 型號</label><input type="text" id="c-model" placeholder="ABC-1234"></div>
+      <div class="fg"><label>進車成本（元）</label><input type="number" id="c-cost" placeholder="0" min="0"></div>
+      <div class="fg"><label>修繕費用（元）</label><input type="number" id="c-repair" placeholder="0" min="0"></div>
+      <div class="fg"><label>廣告費（元）</label><input type="number" id="c-ad" placeholder="0" min="0"></div>
+      <div class="fg"><label>成交售價（元）</label><input type="number" id="c-price" placeholder="0" min="0"></div>
+      <div class="fg full"><label>備註</label><input type="text" id="c-note" placeholder="可選填"></div>
+    </div>
+    <button class="btn btn-car" onclick="addCar()" id="btn-add-car">＋ 新增交易</button>
+  </div>
+  <div class="divider">本月紀錄</div>
+  <div id="car-list"></div>
+</div>
+
+<!-- ══════════ DRINK PANEL ══════════ -->
+<div id="panel-drink" class="panel drink-panel">
+  <div class="card">
+    <div class="card-title"><span class="badge badge-drink">公司</span>飲料店日收入</div>
+    <div class="form-grid">
+      <div class="fg"><label>日期</label><input type="date" id="d-date"></div>
+      <div class="fg"><label>星期</label>
+        <select id="d-weekday"><option>一</option><option>二</option><option>三</option><option>四</option><option>五</option><option>六</option><option>日</option></select>
+      </div>
+      <div class="fg"><label>現金收入（元）</label><input type="number" id="d-cash" placeholder="0" min="0"></div>
+      <div class="fg"><label>電子支付（元）</label><input type="number" id="d-pay" placeholder="0" min="0"></div>
+      <div class="fg"><label>外送平台（元）</label><input type="number" id="d-delivery" placeholder="0" min="0"></div>
+      <div class="fg"><label>原物料成本（元）</label><input type="number" id="d-cogs" placeholder="0" min="0"></div>
+      <div class="fg full"><label>備註</label><input type="text" id="d-note" placeholder="可選填"></div>
+    </div>
+    <button class="btn btn-drink" onclick="addDrink()" id="btn-add-drink">＋ 新增收入</button>
+  </div>
+  <div class="divider">本月紀錄</div>
+  <div id="drink-list"></div>
+</div>
+
+<!-- ══════════ PERSONAL PANEL ══════════ -->
+<div id="panel-personal" class="panel personal-panel">
+  <div class="card">
+    <div class="card-title"><span class="badge badge-personal">私人</span>日常開銷紀錄</div>
+    <div class="form-grid">
+      <div class="fg"><label>日期</label><input type="date" id="p-date"></div>
+      <div class="fg"><label>付款方式</label>
+        <select id="p-payment">
+          <option value="現金">💵 現金</option>
+          <option value="信用卡">💳 信用卡</option>
+          <option value="轉帳">🏦 轉帳</option>
+          <option value="行動支付">📱 行動支付</option>
+        </select>
+      </div>
+      <div class="fg full"><label>消費類別</label>
+        <div class="chips" id="category-chips">
+          <button class="chip active" onclick="selectCat(this,'🍱 餐飲')">🍱 餐飲</button>
+          <button class="chip" onclick="selectCat(this,'🚗 交通')">🚗 交通</button>
+          <button class="chip" onclick="selectCat(this,'🛍 購物')">🛍 購物</button>
+          <button class="chip" onclick="selectCat(this,'🎮 娛樂')">🎮 娛樂</button>
+          <button class="chip" onclick="selectCat(this,'🏥 醫療')">🏥 醫療</button>
+          <button class="chip" onclick="selectCat(this,'💡 水電網路')">💡 水電網路</button>
+          <button class="chip" onclick="selectCat(this,'📦 其他')">📦 其他</button>
+        </div>
+        <input type="hidden" id="p-category" value="🍱 餐飲">
+      </div>
+      <div class="fg"><label>金額（元）</label><input type="number" id="p-amount" placeholder="0" min="0"></div>
+      <div class="fg"><label>消費地點 / 說明</label><input type="text" id="p-desc" placeholder="例：全聯、加油"></div>
+      <div class="fg full"><label>備註</label><input type="text" id="p-note" placeholder="可選填"></div>
+    </div>
+    <button class="btn btn-personal" onclick="addPersonal()" id="btn-add-personal">＋ 新增開銷</button>
+  </div>
+
+  <!-- 本月快覽 -->
+  <div id="personal-month-summary"></div>
+
+  <div class="divider">本月紀錄</div>
+  <div id="personal-list"></div>
+</div>
+
+<!-- ══════════ SUMMARY PANEL ══════════ -->
+<div id="panel-summary" class="panel">
+  <div class="month-row">
+    <button class="arr" onclick="changeMonth(-1)">◀</button>
+    <select id="month-sel" onchange="loadSummary()"></select>
+    <button class="arr" onclick="changeMonth(1)">▶</button>
+  </div>
+  <div id="summary-stats"></div>
+  <div class="divider">🚗 二手車明細</div>
+  <div id="sum-car"></div>
+  <div class="divider" style="margin-top:8px">🧋 飲料店明細</div>
+  <div id="sum-drink"></div>
+  <div class="divider" style="margin-top:8px">💳 私人開銷明細</div>
+  <div id="sum-personal"></div>
+  <div style="margin-top:14px">
+    <button class="btn-outline" onclick="exportCSV()">⬇ 匯出本月 CSV</button>
+    <button class="btn-danger" onclick="refreshData()">🔄 重新載入資料</button>
+  </div>
+</div>
+
+<!-- ══════════ CALC PANEL ══════════ -->
+<div id="panel-calc" class="panel">
+  <div class="card">
+    <div class="card-title">🔢 快速計算機</div>
+    <div class="calc-display" id="calc-disp">0</div>
+    <div class="calc-grid">
+      <button class="cb cc" onclick="ci('C')">C</button>
+      <button class="cb cn" onclick="ci('±')">±</button>
+      <button class="cb cn" onclick="ci('%')">%</button>
+      <button class="cb co" onclick="ci('÷')">÷</button>
+      <button class="cb cn" onclick="ci('7')">7</button>
+      <button class="cb cn" onclick="ci('8')">8</button>
+      <button class="cb cn" onclick="ci('9')">9</button>
+      <button class="cb co" onclick="ci('×')">×</button>
+      <button class="cb cn" onclick="ci('4')">4</button>
+      <button class="cb cn" onclick="ci('5')">5</button>
+      <button class="cb cn" onclick="ci('6')">6</button>
+      <button class="cb co" onclick="ci('−')">−</button>
+      <button class="cb cn" onclick="ci('1')">1</button>
+      <button class="cb cn" onclick="ci('2')">2</button>
+      <button class="cb cn" onclick="ci('3')">3</button>
+      <button class="cb co" onclick="ci('+')">+</button>
+      <button class="cb cn cz" onclick="ci('0')">0</button>
+      <button class="cb cn" onclick="ci('.')">.</button>
+      <button class="cb ce" onclick="ci('=')">=</button>
+    </div>
+    <button class="btn-outline" style="margin-top:10px" onclick="calcCopy()">📋 複製結果</button>
+  </div>
+  <div class="card">
+    <div class="card-title">💡 毛利快算</div>
+    <div class="form-grid">
+      <div class="fg"><label>售價（元）</label><input type="number" id="q-sell" placeholder="0" oninput="qCalc()"></div>
+      <div class="fg"><label>成本（元）</label><input type="number" id="q-cost" placeholder="0" oninput="qCalc()"></div>
+    </div>
+    <div class="quick-result" id="q-res">輸入售價與成本即可計算</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════
+const API_KEY   = 'biz_api_url';
+const STAFF_KEY = 'biz_staff_name';
+let API_URL = localStorage.getItem(API_KEY) || '';
+let STAFF   = localStorage.getItem(STAFF_KEY) || '';
+let cache   = { cars:[], drinks:[], personal:[], loaded:false };
+let currentMonth = today().slice(0,7);
+let selectedCat  = '🍱 餐飲';
+
+// ── Init ─────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  if (API_URL) hideSetup();
+  if (STAFF) document.getElementById('staff-display').textContent = '👤 ' + STAFF;
+  document.getElementById('c-date').value = today();
+  document.getElementById('d-date').value = today();
+  document.getElementById('p-date').value = today();
+  const dow = ['日','一','二','三','四','五','六'][new Date().getDay()];
+  document.getElementById('d-weekday').value = dow;
+  initMonthSelector();
+  if (API_URL) loadData();
+});
+
+function hideSetup(){ document.getElementById('setup-overlay').style.display='none'; }
+
+function saveApiUrl(){
+  const url = document.getElementById('api-url-input').value.trim();
+  if(!url.startsWith('https://script.google.com')){ toast('❌ 網址格式不正確'); return; }
+  API_URL = url; localStorage.setItem(API_KEY, url);
+  hideSetup();
+  apiFetch({action:'init'},'POST').then(()=>loadData());
+  if(!STAFF) setTimeout(changeStaff, 500);
+}
+
+function changeStaff(){
+  const name = prompt('請輸入你的姓名：', STAFF);
+  if(name&&name.trim()){ STAFF=name.trim(); localStorage.setItem(STAFF_KEY,STAFF); document.getElementById('staff-display').textContent='👤 '+STAFF; }
+}
+
+// ── API ──────────────────────────────────────
+async function apiFetch(body, method='POST'){
+  if(!API_URL){ toast('⚠️ 尚未設定 API 網址'); return null; }
+  try{
+    if(method==='GET'){
+      const res = await fetch(`${API_URL}?${new URLSearchParams(body)}`);
+      return await res.json();
+    }
+    const res = await fetch(API_URL,{method:'POST',body:JSON.stringify(body),headers:{'Content-Type':'text/plain'}});
+    return await res.json();
+  }catch(e){ toast('❌ 連線失敗：'+e.message); return null; }
+}
+
+async function loadData(){
+  cache.loaded=false;
+  showLoading('car-list'); showLoading('drink-list'); showLoading('personal-list');
+  const res = await apiFetch({action:'getAll',month:currentMonth},'GET');
+  if(!res||!res.ok){ toast('❌ 載入失敗'); return; }
+  cache.cars     = res.cars     || [];
+  cache.drinks   = res.drinks   || [];
+  cache.personal = res.personal || [];
+  cache.loaded   = true;
+  renderCarList(); renderDrinkList(); renderPersonalList();
+}
+
+async function refreshData(){ toast('🔄 重新載入中...'); await loadData(); renderSummary(); }
+function showLoading(id){ document.getElementById(id).innerHTML=`<div class="loading"><div class="spinner"></div>載入中...</div>`; }
+
+// ── TABS ─────────────────────────────────────
+function switchTab(name){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+  document.querySelector('.t'+name[0]).classList.add('active');
+  if(name==='summary'){ loadData().then(renderSummary); }
+}
+
+// ── ADD CAR ──────────────────────────────────
+async function addCar(){
+  if(!STAFF){ changeStaff(); return; }
+  const model=document.getElementById('c-model').value.trim();
+  if(!model){ toast('請填入車牌或型號'); return; }
+  const data={date:document.getElementById('c-date').value||today(),staff:STAFF,model,cost:+document.getElementById('c-cost').value||0,repair:+document.getElementById('c-repair').value||0,ad:+document.getElementById('c-ad').value||0,price:+document.getElementById('c-price').value||0,note:document.getElementById('c-note').value.trim()};
+  const btn=document.getElementById('btn-add-car'); btn.textContent='儲存中...'; btn.disabled=true;
+  const res=await apiFetch({action:'addCar',data});
+  btn.textContent='＋ 新增交易'; btn.disabled=false;
+  if(!res||!res.ok){ toast('❌ 新增失敗'); return; }
+  toast(`✅ 已新增｜毛利 ${fmt(res.profit)} 元`);
+  ['c-model','c-cost','c-repair','c-ad','c-price','c-note'].forEach(id=>document.getElementById(id).value='');
+  cache.cars.unshift({0:res.id,1:data.date,2:data.staff,3:data.model,4:data.cost,5:data.repair,6:data.ad,7:data.price,8:res.profit,9:data.note});
+  renderCarList();
+}
+
+// ── ADD DRINK ─────────────────────────────────
+async function addDrink(){
+  if(!STAFF){ changeStaff(); return; }
+  const cash=+document.getElementById('d-cash').value||0,pay=+document.getElementById('d-pay').value||0,delivery=+document.getElementById('d-delivery').value||0;
+  if(cash+pay+delivery===0){ toast('請填入至少一項收入'); return; }
+  const data={date:document.getElementById('d-date').value||today(),weekday:document.getElementById('d-weekday').value,staff:STAFF,cash,pay,delivery,cogs:+document.getElementById('d-cogs').value||0,note:document.getElementById('d-note').value.trim()};
+  const btn=document.getElementById('btn-add-drink'); btn.textContent='儲存中...'; btn.disabled=true;
+  const res=await apiFetch({action:'addDrink',data});
+  btn.textContent='＋ 新增收入'; btn.disabled=false;
+  if(!res||!res.ok){ toast('❌ 新增失敗'); return; }
+  toast(`✅ 已新增｜毛利 ${fmt(res.profit)} 元 (${res.margin}%)`);
+  ['d-cash','d-pay','d-delivery','d-cogs','d-note'].forEach(id=>document.getElementById(id).value='');
+  cache.drinks.unshift({0:res.id,1:data.date,2:data.weekday,3:data.staff,4:data.cash,5:data.pay,6:data.delivery,7:res.total,8:data.cogs,9:res.profit,10:res.margin,11:data.note});
+  renderDrinkList();
+}
+
+// ── ADD PERSONAL ──────────────────────────────
+function selectCat(el, cat){
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  selectedCat = cat;
+  document.getElementById('p-category').value = cat;
+}
+
+async function addPersonal(){
+  if(!STAFF){ changeStaff(); return; }
+  const amount=+document.getElementById('p-amount').value||0;
+  if(!amount){ toast('請填入金額'); return; }
+  const data={
+    date:    document.getElementById('p-date').value||today(),
+    staff:   STAFF,
+    category:selectedCat,
+    payment: document.getElementById('p-payment').value,
+    amount,
+    desc:    document.getElementById('p-desc').value.trim(),
+    note:    document.getElementById('p-note').value.trim()
+  };
+  const btn=document.getElementById('btn-add-personal'); btn.textContent='儲存中...'; btn.disabled=true;
+  const res=await apiFetch({action:'addPersonal',data});
+  btn.textContent='＋ 新增開銷'; btn.disabled=false;
+  if(!res||!res.ok){ toast('❌ 新增失敗'); return; }
+  toast(`✅ 已記錄 ${data.category} ${fmt(amount)} 元`);
+  ['p-amount','p-desc','p-note'].forEach(id=>document.getElementById(id).value='');
+  cache.personal.unshift({0:res.id,1:data.date,2:data.staff,3:data.category,4:data.payment,5:data.amount,6:data.desc,7:data.note});
+  renderPersonalList();
+}
+
+// ── DELETE ───────────────────────────────────
+async function deleteCar(id){
+  if(!confirm('確定刪除？')) return;
+  const res=await apiFetch({action:'deleteCar',id});
+  if(!res||!res.ok){ toast('❌ 刪除失敗'); return; }
+  cache.cars=cache.cars.filter(r=>r[0]!==id); renderCarList(); toast('已刪除');
+}
+async function deleteDrink(id){
+  if(!confirm('確定刪除？')) return;
+  const res=await apiFetch({action:'deleteDrink',id});
+  if(!res||!res.ok){ toast('❌ 刪除失敗'); return; }
+  cache.drinks=cache.drinks.filter(r=>r[0]!==id); renderDrinkList(); toast('已刪除');
+}
+async function deletePersonal(id){
+  if(!confirm('確定刪除？')) return;
+  const res=await apiFetch({action:'deletePersonal',id});
+  if(!res||!res.ok){ toast('❌ 刪除失敗'); return; }
+  cache.personal=cache.personal.filter(r=>r[0]!==id); renderPersonalList(); toast('已刪除');
+}
+
+// ── RENDER ───────────────────────────────────
+function renderCarList(){
+  const el=document.getElementById('car-list');
+  const list=cache.cars.filter(r=>String(r[1]).slice(0,7)===currentMonth).sort((a,b)=>String(b[1]).localeCompare(String(a[1])));
+  if(!list.length){ el.innerHTML=`<div class="empty"><div class="empty-icon">🚗</div>本月尚無二手車紀錄</div>`; return; }
+  el.innerHTML=list.map(r=>{
+    const p=+r[8],id=r[0];
+    return `<div class="record-item car"><div class="record-left"><div class="record-title">🚗 ${r[3]}</div><div class="record-sub">${r[1]}　👤${r[2]}　成本${fmt(+r[4])} 修${fmt(+r[5])} 廣${fmt(+r[6])}</div><div class="record-sub">${+r[7]>0?'售出 '+fmt(+r[7])+'元':'庫存中'}${r[9]?'　📝'+r[9]:''}</div></div><div class="record-right"><div class="${p>0?'pp':p<0?'pn':'pz'}" style="font-size:15px">${p>0?'+':''}${fmt(p)}</div><div style="font-size:10px;color:var(--gray)">毛利</div><button class="del-btn" onclick="deleteCar('${id}')">✕</button></div></div>`;
+  }).join('');
+}
+
+function renderDrinkList(){
+  const el=document.getElementById('drink-list');
+  const list=cache.drinks.filter(r=>String(r[1]).slice(0,7)===currentMonth).sort((a,b)=>String(b[1]).localeCompare(String(a[1])));
+  if(!list.length){ el.innerHTML=`<div class="empty"><div class="empty-icon">🧋</div>本月尚無飲料店紀錄</div>`; return; }
+  el.innerHTML=list.map(r=>{
+    const p=+r[9],id=r[0],margin=r[10];
+    return `<div class="record-item drink"><div class="record-left"><div class="record-title">🧋 ${r[1]}（週${r[2]}）</div><div class="record-sub">👤${r[3]}　現${fmt(+r[4])} 電${fmt(+r[5])} 外${fmt(+r[6])}　共${fmt(+r[7])}元</div><div class="record-sub">成本${fmt(+r[8])}　毛利率${margin}%${r[11]?'　📝'+r[11]:''}</div></div><div class="record-right"><div class="${p>0?'pp':p<0?'pn':'pz'}" style="font-size:15px">${p>0?'+':''}${fmt(p)}</div><div style="font-size:10px;color:var(--gray)">毛利</div><button class="del-btn" onclick="deleteDrink('${id}')">✕</button></div></div>`;
+  }).join('');
+}
+
+function renderPersonalList(){
+  const el=document.getElementById('personal-list');
+  const list=cache.personal.filter(r=>String(r[1]).slice(0,7)===currentMonth).sort((a,b)=>String(b[1]).localeCompare(String(a[1])));
+
+  // month quick summary by category
+  const catTotals={};
+  list.forEach(r=>{ catTotals[r[3]]=(catTotals[r[3]]||0)+ +r[5]; });
+  const monthTotal=list.reduce((s,r)=>s+ +r[5],0);
+  const summaryHtml=`<div class="card" style="margin-bottom:10px">
+    <div class="card-title">📊 本月開銷快覽　<span style="color:var(--red);font-size:15px;font-weight:900">${fmt(monthTotal)} 元</span></div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px">
+      ${Object.entries(catTotals).map(([cat,amt])=>`<div style="background:var(--personal-l);border-radius:8px;padding:6px 10px;font-size:12px"><span style="font-weight:700;color:var(--personal)">${cat}</span><br><span style="font-weight:900">${fmt(amt)}</span></div>`).join('')}
+    </div>
+  </div>`;
+  document.getElementById('personal-month-summary').innerHTML = list.length ? summaryHtml : '';
+
+  if(!list.length){ el.innerHTML=`<div class="empty"><div class="empty-icon">💳</div>本月尚無私人開銷紀錄</div>`; return; }
+  el.innerHTML=list.map(r=>{
+    const id=r[0];
+    return `<div class="record-item personal"><div class="record-left"><div class="record-title">${r[3]}　${r[6]||''}</div><div class="record-sub">${r[1]}　${r[4]}${r[7]?'　📝'+r[7]:''}</div></div><div class="record-right"><div class="pn" style="font-size:15px">-${fmt(+r[5])}</div><div style="font-size:10px;color:var(--gray)">支出</div><button class="del-btn" onclick="deletePersonal('${id}')">✕</button></div></div>`;
+  }).join('');
+}
+
+// ── SUMMARY ──────────────────────────────────
+function renderSummary(){
+  const cars    = cache.cars.filter(r=>String(r[1]).slice(0,7)===currentMonth);
+  const drinks  = cache.drinks.filter(r=>String(r[1]).slice(0,7)===currentMonth);
+  const personal= cache.personal.filter(r=>String(r[1]).slice(0,7)===currentMonth);
+
+  const carProfit   = cars.reduce((s,r)=>s+ +r[8],0);
+  const carRev      = cars.reduce((s,r)=>s+ +r[7],0);
+  const drinkProfit = drinks.reduce((s,r)=>s+ +r[9],0);
+  const drinkRev    = drinks.reduce((s,r)=>s+ +r[7],0);
+  const personalExp = personal.reduce((s,r)=>s+ +r[5],0);
+  const bizProfit   = carProfit + drinkProfit;
+  const netProfit   = bizProfit - personalExp;
+
+  document.getElementById('summary-stats').innerHTML=`
+    <div class="stat-grid">
+      <div class="stat-card sc-car"><div class="stat-label">🚗 二手車毛利</div><div class="stat-value">${fmt(carProfit)}</div><div class="stat-sub">${cars.length}筆 · 銷售${fmt(carRev)}</div></div>
+      <div class="stat-card sc-drink"><div class="stat-label">🧋 飲料店毛利</div><div class="stat-value">${fmt(drinkProfit)}</div><div class="stat-sub">${drinks.length}筆 · 營收${fmt(drinkRev)}</div></div>
+      <div class="stat-card sc-gold"><div class="stat-label">🏢 公司合計毛利</div><div class="stat-value">${fmt(bizProfit)}</div></div>
+      <div class="stat-card sc-personal"><div class="stat-label">💳 私人開銷</div><div class="stat-value">${fmt(personalExp)}</div><div class="stat-sub">${personal.length}筆</div></div>
+      <div class="stat-card sc-total"><div class="stat-label">💰 公司毛利 − 私人開銷 ＝ 實際結餘</div><div class="stat-value">${fmt(netProfit)}</div></div>
+    </div>`;
+
+  // car detail
+  const sc=document.getElementById('sum-car');
+  sc.innerHTML=!cars.length?`<div class="empty" style="padding:12px 0">本月無紀錄</div>`:cars.sort((a,b)=>String(b[1]).localeCompare(String(a[1]))).map(r=>{const p=+r[8];return `<div class="record-item car"><div class="record-left"><div class="record-title">🚗 ${r[3]}</div><div class="record-sub">${r[1]}　👤${r[2]}　售${fmt(+r[7])}</div></div><div class="record-right"><div class="${p>0?'pp':p<0?'pn':'pz'}">${p>0?'+':''}${fmt(p)}</div></div></div>`;}).join('');
+
+  // drink detail
+  const sd=document.getElementById('sum-drink');
+  sd.innerHTML=!drinks.length?`<div class="empty" style="padding:12px 0">本月無紀錄</div>`:drinks.sort((a,b)=>String(b[1]).localeCompare(String(a[1]))).map(r=>{const p=+r[9];return `<div class="record-item drink"><div class="record-left"><div class="record-title">🧋 ${r[1]}（週${r[2]}）</div><div class="record-sub">👤${r[3]}　營收${fmt(+r[7])}　毛利率${r[10]}%</div></div><div class="record-right"><div class="${p>0?'pp':p<0?'pn':'pz'}">${p>0?'+':''}${fmt(p)}</div></div></div>`;}).join('');
+
+  // personal detail
+  const sp=document.getElementById('sum-personal');
+  sp.innerHTML=!personal.length?`<div class="empty" style="padding:12px 0">本月無紀錄</div>`:personal.sort((a,b)=>String(b[1]).localeCompare(String(a[1]))).map(r=>`<div class="record-item personal"><div class="record-left"><div class="record-title">${r[3]}　${r[6]||''}</div><div class="record-sub">${r[1]}　${r[4]}</div></div><div class="record-right"><div class="pn">-${fmt(+r[5])}</div></div></div>`).join('');
+}
+
+async function loadSummary(){ currentMonth=document.getElementById('month-sel').value; await loadData(); renderSummary(); }
+
+function initMonthSelector(){
+  const sel=document.getElementById('month-sel'); const d=new Date(); let opts='';
+  for(let i=0;i<18;i++){const m=new Date(d.getFullYear(),d.getMonth()-i,1);const val=m.toISOString().slice(0,7);opts+=`<option value="${val}" ${val===currentMonth?'selected':''}>${m.getFullYear()}年${m.getMonth()+1}月</option>`;}
+  sel.innerHTML=opts;
+}
+function changeMonth(dir){ const sel=document.getElementById('month-sel');const idx=sel.selectedIndex-dir;if(idx>=0&&idx<sel.options.length){sel.selectedIndex=idx;loadSummary();} }
+
+// ── EXPORT CSV ───────────────────────────────
+function exportCSV(){
+  const cars=cache.cars.filter(r=>String(r[1]).slice(0,7)===currentMonth);
+  const drinks=cache.drinks.filter(r=>String(r[1]).slice(0,7)===currentMonth);
+  const personal=cache.personal.filter(r=>String(r[1]).slice(0,7)===currentMonth);
+  let csv='\uFEFF【二手車】\n日期,員工,車牌型號,進車成本,修繕費,廣告費,售價,毛利,備註\n';
+  cars.forEach(r=>{csv+=`${r[1]},${r[2]},${r[3]},${r[4]},${r[5]},${r[6]},${r[7]},${r[8]},${r[9]}\n`;});
+  csv+='\n【飲料店】\n日期,星期,員工,現金,電子支付,外送,總收入,成本,毛利,毛利率,備註\n';
+  drinks.forEach(r=>{csv+=`${r[1]},週${r[2]},${r[3]},${r[4]},${r[5]},${r[6]},${r[7]},${r[8]},${r[9]},${r[10]}%,${r[11]}\n`;});
+  csv+='\n【私人開銷】\n日期,人員,類別,付款方式,金額,說明,備註\n';
+  personal.forEach(r=>{csv+=`${r[1]},${r[2]},${r[3]},${r[4]},${r[5]},${r[6]},${r[7]}\n`;});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download=`記帳_${currentMonth}.csv`; a.click(); toast('CSV 已下載');
+}
+
+// ── CALCULATOR ───────────────────────────────
+let ce='0',jeq=false;
+function ci(v){
+  const disp=document.getElementById('calc-disp');
+  if(v==='C'){ce='0';jeq=false;}
+  else if(v==='='){try{const e=ce.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-');ce=String(eval(e));}catch{ce='錯誤';}jeq=true;}
+  else if(v==='±'){ce=String(-parseFloat(ce)||0);}
+  else if(v==='%'){ce=String(parseFloat(ce)/100||0);}
+  else{if(jeq&&'0123456789.'.includes(v)){ce=v;}else if(ce==='0'&&'0123456789'.includes(v)){ce=v;}else{ce+=v;}jeq=false;}
+  disp.textContent=ce;
+}
+function calcCopy(){navigator.clipboard?.writeText(document.getElementById('calc-disp').textContent).then(()=>toast('已複製'));}
+function qCalc(){
+  const s=+document.getElementById('q-sell').value||0,c=+document.getElementById('q-cost').value||0;
+  const p=s-c,m=s>0?((p/s)*100).toFixed(1):0;
+  const el=document.getElementById('q-res');
+  el.style.color=p>0?'var(--drink)':p<0?'var(--red)':'var(--gray)';
+  el.textContent=s+c===0?'輸入售價與成本即可計算':`毛利：${fmt(p)} 元　　毛利率：${m}%`;
+}
+
+// ── HELPERS ──────────────────────────────────
+function today(){ return new Date().toISOString().slice(0,10); }
+function fmt(n){ return Number(n||0).toLocaleString('zh-TW'); }
+function toast(msg){ const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500); }
+</script>
+</body>
+</html>
